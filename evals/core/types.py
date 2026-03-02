@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
@@ -44,6 +45,8 @@ class EvalResult:
     energy_per_output_token_joules: float = 0.0
     throughput_per_watt: float = 0.0
     mean_itl_ms: float = 0.0
+    trace_steps: int = 0
+    trace_energy_joules: float = 0.0
 
 
 @dataclass(slots=True)
@@ -122,6 +125,13 @@ class RunSummary:
     warmup_samples_excluded: int = 0
     steady_state_reached: bool = False
     energy_method: str = ""
+    avg_power_watts: float = 0.0
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    trace_step_type_stats: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    # Internal fields set by the runner after construction
+    _output_path: Optional[Path] = None
+    _traces_dir: Optional[Path] = None
 
 
 # ---------------------------------------------------------------------------

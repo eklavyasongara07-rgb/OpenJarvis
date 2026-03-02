@@ -17,6 +17,7 @@ from openjarvis.cli.doctor_cmd import doctor
 from openjarvis.cli.init_cmd import init
 from openjarvis.cli.memory_cmd import memory
 from openjarvis.cli.model import model
+from openjarvis.cli.quickstart_cmd import quickstart
 from openjarvis.cli.scheduler_cmd import scheduler
 from openjarvis.cli.serve import serve
 from openjarvis.cli.skill_cmd import skill
@@ -27,8 +28,17 @@ from openjarvis.cli.workflow_cmd import workflow
 
 @click.group(help="OpenJarvis — modular AI assistant backend")
 @click.version_option(version=openjarvis.__version__, prog_name="jarvis")
-def cli() -> None:
+@click.option("--verbose", is_flag=True, default=False, help="Enable debug logging")
+@click.option("--quiet", is_flag=True, default=False, help="Suppress non-error output")
+@click.pass_context
+def cli(ctx: click.Context, verbose: bool, quiet: bool) -> None:
     """Top-level CLI group."""
+    from openjarvis.cli.log_config import setup_logging
+
+    ctx.ensure_object(dict)
+    ctx.obj["verbose"] = verbose
+    ctx.obj["quiet"] = quiet
+    setup_logging(verbose=verbose, quiet=quiet)
 
 
 cli.add_command(init, "init")
@@ -52,6 +62,7 @@ cli.add_command(status, "status")
 cli.add_command(vault, "vault")
 cli.add_command(add, "add")
 cli.add_command(operators, "operators")
+cli.add_command(quickstart, "quickstart")
 
 
 def main() -> None:
