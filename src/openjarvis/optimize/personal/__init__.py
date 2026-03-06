@@ -1,17 +1,3 @@
-"""Personal benchmark system -- synthesize benchmarks from interaction traces."""
-
-from openjarvis.optimize.personal.dataset import PersonalBenchmarkDataset
-from openjarvis.optimize.personal.scorer import PersonalBenchmarkScorer
-from openjarvis.optimize.personal.synthesizer import (
-    PersonalBenchmark,
-    PersonalBenchmarkSample,
-    PersonalBenchmarkSynthesizer,
-)
-
-__all__ = [
-    "PersonalBenchmark",
-    "PersonalBenchmarkSample",
-    "PersonalBenchmarkSynthesizer",
-    "PersonalBenchmarkDataset",
-    "PersonalBenchmarkScorer",
-]
+"""Backward-compatibility shim -- optimize.personal moved to learning.optimize.personal."""
+from openjarvis.learning.optimize.personal import *  # noqa: F401,F403
+from openjarvis.learning.optimize.personal import __all__  # noqa: F401

@@ -1,6 +1,3 @@
-"""Feedback subsystem: LLM-as-judge scoring and signal aggregation."""
-
-from openjarvis.optimize.feedback.collector import FeedbackCollector
-from openjarvis.optimize.feedback.judge import TraceJudge
-
-__all__ = ["TraceJudge", "FeedbackCollector"]
+"""Backward-compatibility shim -- optimize.feedback moved to learning.optimize.feedback."""
+from openjarvis.learning.optimize.feedback import *  # noqa: F401,F403
+from openjarvis.learning.optimize.feedback import __all__  # noqa: F401

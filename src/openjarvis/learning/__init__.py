@@ -15,6 +15,9 @@ from openjarvis.learning.router import (
     HeuristicRouter,
     build_routing_context,
 )
+from openjarvis.learning.optimize.llm_optimizer import LLMOptimizer
+from openjarvis.learning.optimize.optimizer import OptimizationEngine
+from openjarvis.learning.optimize.store import OptimizationStore
 from openjarvis.learning.training.data import TrainingDataMiner
 from openjarvis.learning.training.lora import HAS_TORCH, LoRATrainer, LoRATrainingConfig
 
@@ -81,9 +84,12 @@ __all__ = [
     "HAS_TORCH",
     "HeuristicRewardFunction",
     "HeuristicRouter",
+    "LLMOptimizer",
     "LearningOrchestrator",
     "LoRATrainer",
     "LoRATrainingConfig",
+    "OptimizationEngine",
+    "OptimizationStore",
     "QueryAnalyzer",
     "RewardFunction",
     "RouterPolicy",
