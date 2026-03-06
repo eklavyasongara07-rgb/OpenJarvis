@@ -79,6 +79,7 @@ class RunConfig:
     sheets_worksheet: str = "Results"
     sheets_credentials_path: str = ""
     system_prompt: str = ""
+    episode_mode: bool = False
 
 
 @dataclass(slots=True)

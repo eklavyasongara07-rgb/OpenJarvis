@@ -146,6 +146,7 @@ class TerminalBenchNativeDataset(DatasetProvider):
             "category": category_val,
             "difficulty": task_data.get("difficulty"),
             "tags": task_data.get("tags"),
+            "timeout": task_data.get("timeout"),
         }
 
         return EvalRecord(
@@ -156,6 +157,27 @@ class TerminalBenchNativeDataset(DatasetProvider):
             subject=category_val,
             metadata=metadata,
         )
+
+
+    def create_task_env(self, record):
+        """Return a TerminalBenchTaskEnv for the given record."""
+        try:
+            from openjarvis.evals.execution.terminalbench_env import (
+                TerminalBenchTaskEnv,
+            )
+            return TerminalBenchTaskEnv(record.metadata)
+        except ImportError:
+            return None
+
+    def verify_requirements(self):
+        """Check that terminal-bench and docker are available."""
+        issues = []
+        if not _HAS_TERMINALBENCH:
+            issues.append("terminal-bench package not installed")
+        import shutil
+        if not shutil.which("docker"):
+            issues.append("docker not found in PATH")
+        return issues
 
 
 __all__ = ["TerminalBenchNativeDataset"]
