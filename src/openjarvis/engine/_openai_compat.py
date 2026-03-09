@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import AsyncIterator, Sequence
 from typing import Any, Dict, List
 
@@ -14,6 +15,8 @@ from openjarvis.engine._base import (
     InferenceEngine,
     messages_to_dicts,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class _OpenAICompatibleEngine(InferenceEngine):
@@ -135,7 +138,13 @@ class _OpenAICompatibleEngine(InferenceEngine):
         try:
             resp = self._client.get("/v1/models")
             resp.raise_for_status()
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError):
+        except (
+            httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError,
+        ) as exc:
+            logger.warning(
+                "Failed to list models from %s at %s: %s",
+                self.engine_id, self._host, exc,
+            )
             return []
         data = resp.json()
         return [m["id"] for m in data.get("data", [])]
@@ -144,7 +153,11 @@ class _OpenAICompatibleEngine(InferenceEngine):
         try:
             resp = self._client.get("/v1/models", timeout=2.0)
             return resp.status_code == 200
-        except Exception:
+        except Exception as exc:
+            logger.debug(
+                "%s health check failed at %s: %s",
+                self.engine_id, self._host, exc,
+            )
             return False
 
     def close(self) -> None:
