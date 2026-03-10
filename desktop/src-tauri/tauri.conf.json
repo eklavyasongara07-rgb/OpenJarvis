@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/nicknisi/tauri-v2-json-schema/main/tauri-v2-schema.json",
+  "$schema": "https://schema.tauri.app/config/2",
   "productName": "OpenJarvis",
   "version": "1.0.0",
   "identifier": "com.openjarvis.desktop",
