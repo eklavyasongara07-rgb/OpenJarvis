@@ -91,7 +91,7 @@ Build personal AI that runs on your hardware. Cloud APIs are optional.
 
 ---
 
-## Five Pillars
+## Five Primitives
 
 1. **Intelligence** — The LM: model catalog, generation defaults, quantization, preferred engine.
 2. **Agents** — The agentic harness: system prompt, tools, context, retry and exit logic. Seven agent types.
@@ -105,7 +105,7 @@ Build personal AI that runs on your hardware. Cloud APIs are optional.
 
 <div class="grid cards" markdown>
 
--   **Five Composable Pillars**
+-   **Five Composable Primitives**
 
     ---
 
@@ -165,7 +165,7 @@ Build personal AI that runs on your hardware. Cloud APIs are optional.
 
     ---
 
-    Five-pillar design, registry pattern, query flow, and cross-cutting learning.
+    Five-primitive design, registry pattern, query flow, and cross-cutting learning.
 
 -   **[API Reference](api-reference/openjarvis/index.md)**
 
@@ -186,3 +186,11 @@ Build personal AI that runs on your hardware. Cloud APIs are optional.
     Contributing guide, extension patterns, roadmap, and changelog.
 
 </div>
+
+## Acknowledgements
+
+<p>
+  <a href="https://ollama.com/">Ollama</a> &bull;
+  <a href="https://research.ibm.com/">IBM Research</a> &bull;
+  <a href="https://hai.stanford.edu/">Stanford HAI</a>
+</p>

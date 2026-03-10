@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import time
 from pathlib import Path
@@ -17,6 +18,8 @@ from openjarvis.learning.optimize.types import (
     TrialFeedback,
     TrialResult,
 )
+
+logger = logging.getLogger(__name__)
 
 _CREATE_RUNS = """\
 CREATE TABLE IF NOT EXISTS optimization_runs (
@@ -105,7 +108,7 @@ class OptimizationStore:
             try:
                 self._conn.execute(stmt)
             except sqlite3.OperationalError:
-                pass  # Column already exists
+                pass  # Column already exists — safe to ignore
         self._conn.commit()
 
     # ------------------------------------------------------------------
@@ -211,9 +214,9 @@ class OptimizationStore:
         fb_json = json.dumps({
             "summary_text": fb.summary_text,
             "failure_patterns": fb.failure_patterns,
-            "pillar_ratings": fb.pillar_ratings,
+            "primitive_ratings": fb.primitive_ratings,
             "suggested_changes": fb.suggested_changes,
-            "target_pillar": fb.target_pillar,
+            "target_primitive": fb.target_primitive,
         }) if fb else "{}"
 
         self._conn.execute(
@@ -292,7 +295,7 @@ class OptimizationStore:
                     "low": d.low,
                     "high": d.high,
                     "description": d.description,
-                    "pillar": d.pillar,
+                    "primitive": d.primitive,
                 }
             )
         return json.dumps(
@@ -319,7 +322,7 @@ class OptimizationStore:
                     low=d.get("low"),
                     high=d.get("high"),
                     description=d.get("description", ""),
-                    pillar=d.get("pillar", ""),
+                    primitive=d.get("primitive", ""),
                 )
             )
         return SearchSpace(
@@ -354,8 +357,8 @@ class OptimizationStore:
         if len(row) > 11:
             try:
                 benchmarks = json.loads(row[11]) if row[11] else []
-            except (json.JSONDecodeError, TypeError):
-                pass
+            except (json.JSONDecodeError, TypeError) as exc:
+                logger.debug("Failed to parse stored JSON: %s", exc)
 
         # Reconstruct pareto frontier from IDs
         pareto_frontier: List[TrialResult] = []
@@ -366,8 +369,8 @@ class OptimizationStore:
                 pareto_frontier = [
                     trial_map[tid] for tid in frontier_ids if tid in trial_map
                 ]
-            except (json.JSONDecodeError, TypeError):
-                pass
+            except (json.JSONDecodeError, TypeError) as exc:
+                logger.debug("Failed to parse stored JSON: %s", exc)
 
         return OptimizationRun(
             run_id=run_id,
@@ -433,8 +436,8 @@ class OptimizationStore:
                     )
                     for s in raw_scores
                 ]
-            except (json.JSONDecodeError, TypeError):
-                pass
+            except (json.JSONDecodeError, TypeError) as exc:
+                logger.debug("Failed to parse stored JSON: %s", exc)
 
         if len(row) > 15:
             try:
@@ -443,12 +446,12 @@ class OptimizationStore:
                     structured_feedback = TrialFeedback(
                         summary_text=raw_fb.get("summary_text", ""),
                         failure_patterns=raw_fb.get("failure_patterns", []),
-                        pillar_ratings=raw_fb.get("pillar_ratings", {}),
+                        primitive_ratings=raw_fb.get("primitive_ratings", {}),
                         suggested_changes=raw_fb.get("suggested_changes", []),
-                        target_pillar=raw_fb.get("target_pillar", ""),
+                        target_primitive=raw_fb.get("target_primitive", ""),
                     )
-            except (json.JSONDecodeError, TypeError):
-                pass
+            except (json.JSONDecodeError, TypeError) as exc:
+                logger.debug("Failed to parse stored JSON: %s", exc)
 
         # per_benchmark column
         per_benchmark: List[BenchmarkScore] = []
@@ -469,8 +472,8 @@ class OptimizationStore:
                     )
                     for b in raw_pb
                 ]
-            except (json.JSONDecodeError, TypeError):
-                pass
+            except (json.JSONDecodeError, TypeError) as exc:
+                logger.debug("Failed to parse stored JSON: %s", exc)
 
         config = TrialConfig(
             trial_id=trial_id,
