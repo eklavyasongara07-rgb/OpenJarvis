@@ -10,6 +10,57 @@ const OLLAMA_PORT: u16 = 11434;
 const JARVIS_PORT: u16 = 8222;
 const DEFAULT_MODEL: &str = "qwen3:0.6b";
 
+/// Resolve full path to a binary by checking common locations.
+/// macOS .app bundles don't inherit the shell PATH, so we probe manually.
+fn resolve_bin(name: &str) -> String {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let candidates = [
+        format!("/opt/homebrew/bin/{name}"),
+        format!("{home}/.local/bin/{name}"),
+        format!("{home}/.cargo/bin/{name}"),
+        format!("/usr/local/bin/{name}"),
+        format!("/usr/bin/{name}"),
+    ];
+    for path in &candidates {
+        if std::path::Path::new(path).exists() {
+            return path.clone();
+        }
+    }
+    name.to_string()
+}
+
+/// Find the OpenJarvis project root (contains pyproject.toml).
+/// Walks up from the executable's location, then checks common paths.
+fn find_project_root() -> Option<std::path::PathBuf> {
+    // Try relative to the running executable (works in dev and .app bundle)
+    if let Ok(exe) = std::env::current_exe() {
+        let mut dir = exe.parent().map(|p| p.to_path_buf());
+        for _ in 0..8 {
+            if let Some(ref d) = dir {
+                if d.join("pyproject.toml").exists() {
+                    return Some(d.clone());
+                }
+                dir = d.parent().map(|p| p.to_path_buf());
+            }
+        }
+    }
+    // Fallback: common clone locations
+    let home = std::env::var("HOME").unwrap_or_default();
+    let fallbacks = [
+        format!("{home}/projects/hazy/OpenJarvis"),
+        format!("{home}/OpenJarvis"),
+        format!("{home}/projects/OpenJarvis"),
+        format!("{home}/src/OpenJarvis"),
+    ];
+    for p in &fallbacks {
+        let path = std::path::PathBuf::from(p);
+        if path.join("pyproject.toml").exists() {
+            return Some(path);
+        }
+    }
+    None
+}
+
 // ---------------------------------------------------------------------------
 // BackendManager — owns the Ollama + Jarvis server child processes
 // ---------------------------------------------------------------------------
@@ -148,7 +199,8 @@ async fn boot_backend(backend: SharedBackend, status: SharedStatus) {
 
     // Try the bundled sidecar first, fall back to system ollama
     let ollama_child = {
-        let sidecar = tokio::process::Command::new("ollama")
+        let ollama_bin = resolve_bin("ollama");
+        let sidecar = tokio::process::Command::new(&ollama_bin)
             .arg("serve")
             .env("OLLAMA_HOST", format!("127.0.0.1:{}", OLLAMA_PORT))
             .stdout(std::process::Stdio::null())
@@ -211,11 +263,16 @@ async fn boot_backend(backend: SharedBackend, status: SharedStatus) {
         s.detail = "Starting API server...".into();
     }
 
-    let jarvis_child = tokio::process::Command::new("uv")
-        .args(["run", "jarvis", "serve", "--port", &JARVIS_PORT.to_string(), "--agent", "simple"])
+    let uv_bin = resolve_bin("uv");
+    let project_root = find_project_root();
+    let mut cmd = tokio::process::Command::new(&uv_bin);
+    cmd.args(["run", "jarvis", "serve", "--port", &JARVIS_PORT.to_string(), "--agent", "simple"])
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn();
+        .stderr(std::process::Stdio::null());
+    if let Some(ref root) = project_root {
+        cmd.current_dir(root);
+    }
+    let jarvis_child = cmd.spawn();
 
     match jarvis_child {
         Ok(child) => {
@@ -225,7 +282,7 @@ async fn boot_backend(backend: SharedBackend, status: SharedStatus) {
             let mut s = status.lock().await;
             s.error = Some(format!(
                 "Could not start jarvis server: {}. \
-                 Make sure uv is installed (https://astral.sh/uv) and run: uv sync --extra server",
+                 Make sure uv is installed (https://astral.sh/uv) and the OpenJarvis repo is cloned",
                 e
             ));
             return;
@@ -233,7 +290,7 @@ async fn boot_backend(backend: SharedBackend, status: SharedStatus) {
     }
 
     let server_url = format!("http://127.0.0.1:{}/health", JARVIS_PORT);
-    let server_ok = wait_for_url(&server_url, Duration::from_secs(30)).await;
+    let server_ok = wait_for_url(&server_url, Duration::from_secs(120)).await;
 
     if !server_ok {
         let mut s = status.lock().await;
@@ -394,7 +451,8 @@ async fn fetch_models(api_url: String) -> Result<serde_json::Value, String> {
 async fn run_jarvis_command(args: Vec<String>) -> Result<String, String> {
     let mut cmd_args = vec!["run".to_string(), "jarvis".to_string()];
     cmd_args.extend(args);
-    let output = tokio::process::Command::new("uv")
+    let uv_bin = resolve_bin("uv");
+    let output = tokio::process::Command::new(&uv_bin)
         .args(&cmd_args)
         .output()
         .await
