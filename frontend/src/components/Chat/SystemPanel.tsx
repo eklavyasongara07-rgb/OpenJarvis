@@ -154,6 +154,7 @@ export function SystemPanel() {
           </div>
         </section>
 
+
         {/* Cost Comparison */}
         <section>
           <h4 className="text-[11px] font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-tertiary)' }}>

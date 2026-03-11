@@ -4,8 +4,8 @@ import type { ModelInfo, SavingsData, ServerInfo } from '../types';
 // Supabase config — safe to embed (RLS protects writes)
 // ---------------------------------------------------------------------------
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://mtbtgpwzrbostweaanpr.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10YnRncHd6cmJvc3R3ZWFhbnByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxODk0OTQsImV4cCI6MjA4ODc2NTQ5NH0._xMlqCfljtXpwPj54H-ghxfLFO-jiq4W2WhpU8vVL1c';
 
 declare global {
   interface Window {
@@ -203,7 +203,7 @@ export async function submitSavings(data: SavingsSubmission): Promise<boolean> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return false;
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/savings_entries`,
+      `${SUPABASE_URL}/rest/v1/savings_entries?on_conflict=anon_id`,
       {
         method: 'POST',
         headers: {

@@ -56,7 +56,7 @@ def _get_memory_backend(config):
 
         return backend
     except Exception as exc:
-        logger.warning("Failed to initialize memory backend: %s", exc)
+        logger.debug("Memory backend unavailable (optional): %s", exc)
         return None
 
 
@@ -245,7 +245,7 @@ def _print_profile(
             _row("  Decode energy", f"{decode_e:.4f} J")
         _row("Energy / output token", f"{energy_per_tok:.6f} J")
         _row("Tokens / joule", f"{tok_per_j:.1f}")
-        _row("Throughput / watt (IPW)", f"{tpw:.2f} tok/s/W")
+        _row("Throughput / watt", f"{tpw:.2f} tok/s/W")
         if avg_power > 0:
             _row("Avg power draw", f"{avg_power:.1f} W")
         if e_vendor:

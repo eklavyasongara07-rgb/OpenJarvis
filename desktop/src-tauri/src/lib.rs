@@ -516,7 +516,7 @@ async fn submit_savings(
     }
     let client = reqwest::Client::new();
     let resp = client
-        .post(format!("{}/rest/v1/savings_entries", supabase_url))
+        .post(format!("{}/rest/v1/savings_entries?on_conflict=anon_id", supabase_url))
         .header("Content-Type", "application/json")
         .header("apikey", &supabase_key)
         .header("Authorization", format!("Bearer {}", supabase_key))
