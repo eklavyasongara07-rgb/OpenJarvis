@@ -69,6 +69,14 @@ class AgentExecutor:
             "agent_name": agent["name"],
         })
 
+        # Activity tracking: subscribe to tool/inference events
+        def _on_activity(event: Any) -> None:
+            if event.data.get("agent") == agent_id:
+                self._manager.update_agent(agent_id, last_activity_at=time.time())
+
+        self._bus.subscribe(EventType.TOOL_CALL_START, _on_activity)
+        self._bus.subscribe(EventType.INFERENCE_START, _on_activity)
+
         tick_start = time.time()
         result = None
         error_info = None
@@ -78,6 +86,8 @@ class AgentExecutor:
         except AgentTickError as e:
             error_info = e
         finally:
+            self._bus.unsubscribe(EventType.TOOL_CALL_START, _on_activity)
+            self._bus.unsubscribe(EventType.INFERENCE_START, _on_activity)
             tick_duration = time.time() - tick_start
             self._finalize_tick(agent_id, result, error_info, tick_duration)
 
