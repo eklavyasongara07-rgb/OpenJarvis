@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import json
+import time
 
 import pytest
 
@@ -42,6 +42,7 @@ class TestWSBridge:
                 "agent_id": "test-123",
                 "agent_name": "test",
             })
+            time.sleep(0.05)  # Let call_soon_threadsafe deliver to queue
             data = ws.receive_json()
             assert data["type"] == "agent_tick_start"
             assert data["data"]["agent_id"] == "test-123"
@@ -53,5 +54,6 @@ class TestWSBridge:
             event_bus.publish(EventType.AGENT_TICK_START, {"agent_id": "agent-B"})
             # This event SHOULD be received
             event_bus.publish(EventType.AGENT_TICK_START, {"agent_id": "agent-A"})
+            time.sleep(0.05)  # Let call_soon_threadsafe deliver to queue
             data = ws.receive_json()
             assert data["data"]["agent_id"] == "agent-A"
