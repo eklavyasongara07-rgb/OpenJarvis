@@ -90,7 +90,6 @@ channel-gmail = [
     "google-auth-oauthlib>=1.0",
     "google-auth-httplib2>=0.2",
 ]
-channel-twitter = ["tweepy>=4.14"]
 browser = ["playwright>=1.40"]
 media = ["openai>=1.30"]
 pdf = ["pdfplumber>=0.10"]
