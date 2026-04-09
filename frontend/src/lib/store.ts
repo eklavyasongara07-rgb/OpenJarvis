@@ -14,6 +14,23 @@ import type {
 import type { ManagedAgent } from './api';
 import { db } from '../../firebase/config';
 import { collection, addDoc, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getApps } from 'firebase-admin/app';
+
+// Firebase app instance
+let firebaseApp: any = null;
+
+// Initialize Firebase if not already initialized
+if (!getApps().length) {
+  try {
+    firebaseApp = initializeApp({
+      credential: admin.credential.applicationDefault(),
+      databaseURL: "https://gen-lang-client-0031953698-default-rtdb.asia-east1.firebasedatabase.app"
+    });
+  } catch (error) {
+    console.warn('Firebase initialization warning:', error);
+  }
+}
 
 export interface AgentEvent {
   type: string;
