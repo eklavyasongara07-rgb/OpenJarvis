@@ -12,25 +12,10 @@ import type {
   TokenUsage,
 } from '../types';
 import type { ManagedAgent } from './api';
-import { db } from '../../firebase/config';
-import { collection, addDoc, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getApps } from 'firebase-admin/app';
 
-// Firebase app instance
-let firebaseApp: any = null;
-
-// Initialize Firebase if not already initialized
-if (!getApps().length) {
-  try {
-    firebaseApp = initializeApp({
-      credential: admin.credential.applicationDefault(),
-      databaseURL: "https://gen-lang-client-0031953698-default-rtdb.asia-east1.firebasedatabase.app"
-    });
-  } catch (error) {
-    console.warn('Firebase initialization warning:', error);
-  }
-}
+// Remove Firebase imports for simpler local storage solution
+// import { db } from '../../firebase/config';
+// import { collection, addDoc, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 export interface AgentEvent {
   type: string;
@@ -201,258 +186,14 @@ interface AppState {
   setSelectedAgentId: (id: string | null) => void;
 
   // Agent events (live stream)
-  agentEvents: AgentEvent[];
-  addAgentEvent: (event: AgentEvent) => void;
-  clearAgentEvents: () => void;
-
-  // Actions: opt-in sharing
-  setOptIn: (enabled: boolean, displayName: string, email: string) => void;
-  setOptInModalOpen: (open: boolean) => void;
-  markOptInModalSeen: () => void;
-
-  // Logs
-  logEntries: LogEntry[];
-  addLogEntry: (entry: LogEntry) => void;
-  clearLogs: () => void;
-
-  // Model loading
-  modelLoading: boolean;
-  setModelLoading: (loading: boolean) => void;
-}
-
-export const useAppStore = create<AppState>((set, get) => {
-  const initial = loadConversations();
-  const convList = Object.values(initial.conversations).sort(
-    (a, b) => b.updatedAt - a.updatedAt,
-  );
-
-  // Firebase listener for agent events
-  let agentEventsUnsubscribe: () => void = () => {};
-
-  // Initialize Firebase listener for agent activities
-  try {
-    // Reinitialize Firebase with correct project ID for frontend
-    if (!firebaseApp) {
-      firebaseApp = admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-        databaseURL: "https://gen-lang-client-0031953698-default-rtdb.asia-east1.firebasedatabase.app"
-      });
-    }
-    const agentActivitiesRef = collection(db, 'agent_activities');
-    const q = query(agentActivitiesRef, orderBy('timestamp', 'desc'), limit(100));
-    agentEventsUnsubscribe = onSnapshot(q, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const data = change.doc.data();
-          const event: AgentEvent = {
-            type: data.type || 'unknown',
-            timestamp: data.timestamp?.toMillis() || Date.now(),
-            data: data
-          };
-          get().addAgentEvent(event);
-        }
-      });
-    });
-  } catch (error) {
-    console.warn('Firebase agent events listener initialization failed:', error);
-  }
-
-  return {
-    conversations: convList,
-    activeId: initial.activeId,
-    messages:
-      initial.activeId && initial.conversations[initial.activeId]
-        ? initial.conversations[initial.activeId].messages
-        : [],
-    streamState: INITIAL_STREAM,
-
-    models: [],
-    modelsLoading: true,
-    selectedModel: '',
-    serverInfo: null,
-    savings: null,
-
-    settings: loadSettings(),
-
-    commandPaletteOpen: false,
-    sidebarOpen: true,
-    systemPanelOpen: true,
-
-    optInEnabled: localStorage.getItem(OPTIN_KEY) === 'true',
-    optInDisplayName: localStorage.getItem(OPTIN_NAME_KEY) || '',
-    optInEmail: localStorage.getItem(OPTIN_EMAIL_KEY) || '',
-    optInAnonId: localStorage.getItem(OPTIN_ANONID_KEY) || crypto.randomUUID(),
-    optInModalSeen: localStorage.getItem(OPTIN_SEEN_KEY) === 'true',
-    optInModalOpen: false,
-
-    // ── Conversations ───────────────────────────────────────────────
-
-    loadConversations: () => {
-      const store = loadConversations();
-      set({
-        conversations: Object.values(store.conversations).sort(
-          (a, b) => b.updatedAt - a.updatedAt,
-        ),
-        activeId: store.activeId,
-      });
-    },
-
-    createConversation: (model?: string) => {
-      const store = loadConversations();
-      const conv: Conversation = {
-        id: generateId(),
-        title: 'New chat',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        model: model || get().selectedModel || 'default',
-        messages: [],
-      };
-      store.conversations[conv.id] = conv;
-      store.activeId = conv.id;
-      saveConversations(store);
-      set({
-        conversations: Object.values(store.conversations).sort(
-          (a, b) => b.updatedAt - a.updatedAt,
-        ),
-        activeId: conv.id,
-        messages: [],
-      });
-      return conv.id;
-    },
-
-    selectConversation: (id: string) => {
-      const store = loadConversations();
-      store.activeId = id;
-      saveConversations(store);
-      const conv = store.conversations[id];
-      set({
-        activeId: id,
-        messages: conv ? conv.messages : [],
-      });
-    },
-
-    deleteConversation: (id: string) => {
-      const store = loadConversations();
-      delete store.conversations[id];
-      if (store.activeId === id) {
-        const remaining = Object.keys(store.conversations);
-        store.activeId = remaining.length > 0 ? remaining[0] : null;
-      }
-      saveConversations(store);
-      const convList = Object.values(store.conversations).sort(
-        (a, b) => b.updatedAt - a.updatedAt,
-      );
-      const activeConv = store.activeId
-        ? store.conversations[store.activeId]
-        : null;
-      set({
-        conversations: convList,
-        activeId: store.activeId,
-        messages: activeConv ? activeConv.messages : [],
-      });
-    },
-
-    loadMessages: (conversationId: string | null) => {
-      if (!conversationId) {
-        set({ messages: [] });
-        return;
-      }
-      const store = loadConversations();
-      const conv = store.conversations[conversationId];
-      set({ messages: conv ? conv.messages : [] });
-    },
-
-    addMessage: (conversationId: string, message: ChatMessage) => {
-      const store = loadConversations();
-      const conv = store.conversations[conversationId];
-      if (!conv) return;
-      conv.messages.push(message);
-      conv.updatedAt = Date.now();
-      if (message.role === 'user' && conv.title === 'New chat') {
-        conv.title =
-          message.content.slice(0, 50) +
-          (message.content.length > 50 ? '...' : '');
-      }
-      saveConversations(store);
-      set({
-        messages: [...conv.messages],
-        conversations: Object.values(store.conversations).sort(
-          (a, b) => b.updatedAt - a.updatedAt,
-        ),
-      });
-    },
-
-    updateLastAssistant: (
-      conversationId: string,
-      content: string,
-      toolCalls?: ToolCallInfo[],
-      usage?: TokenUsage,
-      telemetry?: MessageTelemetry,
-      audio?: { url: string },
-    ) => {
-      const store = loadConversations();
-      const conv = store.conversations[conversationId];
-      if (!conv) return;
-      const lastMsg = conv.messages[conv.messages.length - 1];
-      if (lastMsg && lastMsg.role === 'assistant') {
-        lastMsg.content = content;
-        if (toolCalls) lastMsg.toolCalls = toolCalls;
-        if (usage) lastMsg.usage = usage;
-        if (telemetry) lastMsg.telemetry = telemetry;
-        if (audio) lastMsg.audio = audio;
-        conv.updatedAt = Date.now();
-        saveConversations(store);
-        set({ messages: [...conv.messages] });
-      }
-    },
-
-    setStreamState: (partial: Partial<StreamState>) => {
-      set((s) => ({ streamState: { ...s.streamState, ...partial } }));
-    },
-
-    resetStream: () => {
-      set({ streamState: INITIAL_STREAM });
-    },
-
-    // ── Models & server ────────────────────────────────────────────
-
-    setModels: (models: ModelInfo[]) => set({ models }),
-    setModelsLoading: (loading: boolean) => set({ modelsLoading: loading }),
-    setSelectedModel: (model: string) => set({ selectedModel: model }),
-    setServerInfo: (info: ServerInfo | null) => set({ serverInfo: info }),
-    setSavings: (data: SavingsData | null) => set({ savings: data }),
-
-    // ── Settings ───────────────────────────────────────────────────
-
-    updateSettings: (partial: Partial<Settings>) => {
-      const updated = { ...get().settings, ...partial };
-      saveSettings(updated);
-      set({ settings: updated });
-    },
-
-    // ── UI ──────────────────────────────────────────────────────────
-
-    setCommandPaletteOpen: (open: boolean) => set({ commandPaletteOpen: open }),
-    toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-    setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
-    toggleSystemPanel: () => set((s) => ({ systemPanelOpen: !s.systemPanelOpen })),
-    setSystemPanelOpen: (open: boolean) => set({ systemPanelOpen: open }),
-
-    // ── Agents ─────────────────────────────────────────────────────
-
-    managedAgents: [],
-    managedAgentsLoading: false,
-    selectedAgentId: null,
-
-    setManagedAgents: (agents) => set({ managedAgents: agents }),
-    setManagedAgentsLoading: (loading) => set({ managedAgentsLoading: loading }),
-    setSelectedAgentId: (id) => set({ selectedAgentId: id }),
-
-    agentEvents: [],
-    addAgentEvent: (event) => set((s) => ({
-      agentEvents: [...s.agentEvents.slice(-99), event],
-    })),
-    clearAgentEvents: () => set({ agentEvents: [] }),
+  agentEvents: AgentEvent[],
+  addAgentEvent: (event: AgentEvent) => {
+    // Keep only last 100 events
+    set((state) => ({
+      agentEvents: [...state.agentEvents.slice(-99), event]
+    }));
+  },
+  clearAgentEvents: () => set({ agentEvents: [] }),
 
     // ── Logs ────────────────────────────────────────────────────────
     logEntries: [],
@@ -461,18 +202,11 @@ export const useAppStore = create<AppState>((set, get) => {
     })),
     clearLogs: () => set({ logEntries: [] }),
 
-    // ── Model loading ───────────────────────────────────────────────
-    modelLoading: false,
-    setModelLoading: (loading) => set({ modelLoading: loading }),
+     // ── Model loading ───────────────────────────────────────────────
+     modelLoading: false,
+     setModelLoading: (loading) => set({ modelLoading: loading }),
 
-    // Cleanup Firebase listener on store destruction
-    destroy: () => {
-      if (agentEventsUnsubscribe) {
-        agentEventsUnsubscribe();
-      }
-    },
-
-    // ── Opt-in sharing ──────────────────────────────────────────────
+     // ── Opt-in sharing ──────────────────────────────────────────────
 
     setOptIn: (enabled: boolean, displayName: string, email: string) => {
       const anonId = get().optInAnonId;

@@ -2,7 +2,7 @@ import { BarChart3 } from 'lucide-react';
 import { EnergyDashboard } from '../components/Dashboard/EnergyDashboard';
 import { CostComparison } from '../components/Dashboard/CostComparison';
 import { TraceDebugger } from '../components/Dashboard/TraceDebugger';
-import { AgentMonitor } from '../components/Dashboard/AgentMonitor';
+import { SimpleAgentMonitor } from '../components/Dashboard/SimpleAgentMonitor';
 
 export function DashboardPage() {
   return (
@@ -21,7 +21,7 @@ export function DashboardPage() {
             <CostComparison />
           </div>
           <div className="lg:col-span-2">
-            <AgentMonitor />
+            <SimpleAgentMonitor />
           </div>
         </div>
 
