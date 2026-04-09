@@ -214,6 +214,13 @@ export const useAppStore = create<AppState>((set, get) => {
 
   // Initialize Firebase listener for agent activities
   try {
+    // Reinitialize Firebase with correct project ID for frontend
+    if (!firebaseApp) {
+      firebaseApp = admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+        databaseURL: "https://gen-lang-client-0031953698-default-rtdb.asia-east1.firebasedatabase.app"
+      });
+    }
     const agentActivitiesRef = collection(db, 'agent_activities');
     const q = query(agentActivitiesRef, orderBy('timestamp', 'desc'), limit(100));
     agentEventsUnsubscribe = onSnapshot(q, (snapshot) => {
