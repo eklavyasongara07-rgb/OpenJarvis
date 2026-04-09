@@ -2,6 +2,7 @@ import { BarChart3 } from 'lucide-react';
 import { EnergyDashboard } from '../components/Dashboard/EnergyDashboard';
 import { CostComparison } from '../components/Dashboard/CostComparison';
 import { TraceDebugger } from '../components/Dashboard/TraceDebugger';
+import { AgentMonitor } from '../components/Dashboard/AgentMonitor';
 
 export function DashboardPage() {
   return (
@@ -14,9 +15,14 @@ export function DashboardPage() {
           </h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-          <EnergyDashboard />
-          <CostComparison />
+        <div className="grid gap-4 mb-6">
+          <div className="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <EnergyDashboard />
+            <CostComparison />
+          </div>
+          <div className="lg:col-span-2">
+            <AgentMonitor />
+          </div>
         </div>
 
         <TraceDebugger />

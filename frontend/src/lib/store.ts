@@ -12,6 +12,8 @@ import type {
   TokenUsage,
 } from '../types';
 import type { ManagedAgent } from './api';
+import { db } from '../../firebase/config';
+import { collection, addDoc, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 export interface AgentEvent {
   type: string;
@@ -206,6 +208,30 @@ export const useAppStore = create<AppState>((set, get) => {
   const convList = Object.values(initial.conversations).sort(
     (a, b) => b.updatedAt - a.updatedAt,
   );
+
+  // Firebase listener for agent events
+  let agentEventsUnsubscribe: () => void = () => {};
+
+  // Initialize Firebase listener for agent activities
+  try {
+    const agentActivitiesRef = collection(db, 'agent_activities');
+    const q = query(agentActivitiesRef, orderBy('timestamp', 'desc'), limit(100));
+    agentEventsUnsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          const event: AgentEvent = {
+            type: data.type || 'unknown',
+            timestamp: data.timestamp?.toMillis() || Date.now(),
+            data: data
+          };
+          get().addAgentEvent(event);
+        }
+      });
+    });
+  } catch (error) {
+    console.warn('Firebase agent events listener initialization failed:', error);
+  }
 
   return {
     conversations: convList,
@@ -414,6 +440,13 @@ export const useAppStore = create<AppState>((set, get) => {
     // ── Model loading ───────────────────────────────────────────────
     modelLoading: false,
     setModelLoading: (loading) => set({ modelLoading: loading }),
+
+    // Cleanup Firebase listener on store destruction
+    destroy: () => {
+      if (agentEventsUnsubscribe) {
+        agentEventsUnsubscribe();
+      }
+    },
 
     // ── Opt-in sharing ──────────────────────────────────────────────
 
