@@ -1,5 +1,3 @@
-import { formatDistanceToNow } from 'date-fns';
-
 interface AgentCardProps {
   event: {
     type: string;
@@ -11,27 +9,37 @@ interface AgentCardProps {
 }
 
 export function AgentCard({ event, selected, onSelect }: AgentCardProps) {
-  const timeAgo = formatDistanceToNow(new Date(event.timestamp), { addSuffix: true });
+  // Simple time ago calculation
+  const timeAgo = (() => {
+    const seconds = Math.floor((Date.now() - event.timestamp) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  })();
   
   // Determine icon and color based on event type
   const getEventDetails = (type: string) => {
     switch (type) {
       case 'prospecting_start':
-        return { icon: 'Search', color: 'text-blue-500' };
+        return { icon: '🔍', color: 'text-blue-500' };
       case 'prospecting_complete':
-        return { icon: 'CheckCircle2', color: 'text-green-500' };
+        return { icon: '✅', color: 'text-green-500' };
       case 'lead_scraped':
-        return { icon: 'UserPlus', color: 'text-purple-500' };
+        return { icon: '👤', color: 'text-purple-500' };
       case 'lead_qualified':
-        return { icon: 'Target', color: 'text-orange-500' };
+        return { icon: '🎯', color: 'text-orange-500' };
       case 'dm_generated':
-        return { icon: 'MessageCircle', color: 'text-indigo-500' };
+        return { icon: '💬', color: 'text-indigo-500' };
       case 'follow_up_scheduled':
-        return { icon: 'Clock', color: 'text-yellow-500' };
+        return { icon: '⏰', color: 'text-yellow-500' };
       case 'error':
-        return { icon: 'AlertTriangle', color: 'text-red-500' };
+        return { icon: '⚠️', color: 'text-red-500' };
       default:
-        return { icon: 'Activity', color: 'text-muted-foreground' };
+        return { icon: '📊', color: 'text-muted-foreground' };
     }
   };
 
@@ -46,8 +54,7 @@ export function AgentCard({ event, selected, onSelect }: AgentCardProps) {
     >
       <div className="flex items-start gap-3">
         <div className={`h-8 w-8 flex items-center justify-center ${color} rounded`}>
-          {/* Using Lucide icons - you'll need to import them */}
-          <span className="text-sm">{icon}</span>
+          <span className="text-lg">{icon}</span>
         </div>
         <div className="flex-1 space-y-1">
           <div className="flex justify-between">
